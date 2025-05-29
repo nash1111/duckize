@@ -1,0 +1,13 @@
+OrderID,CustomerID,CustomerName,OrderDate,ProductName,Quantity,UnitPrice,TotalAmount,Status
+ORD-001,C-1001,Alice Johnson,2024-01-15,Laptop Pro,1,1499.99,1499.99,Delivered
+ORD-002,C-1002,Bob Smith,2024-01-16,Wireless Mouse,2,29.99,59.98,Shipped
+ORD-003,C-1003,Carol Davis,2024-01-17,USB-C Hub,1,49.99,49.99,Processing
+ORD-004,C-1001,Alice Johnson,2024-01-18,Monitor 27",1,399.99,399.99,Delivered
+ORD-005,C-1004,David Wilson,2024-01-19,Mechanical Keyboard,1,129.99,129.99,Shipped
+ORD-006,C-1005,Emma Brown,2024-01-20,Webcam HD,1,79.99,79.99,Delivered
+ORD-007,C-1002,Bob Smith,2024-01-21,External SSD 1TB,1,159.99,159.99,Processing
+ORD-008,C-1006,Frank Miller,2024-01-22,Gaming Headset,1,89.99,89.99,Shipped
+ORD-009,C-1007,Grace Lee,2024-01-23,Laptop Stand,1,39.99,39.99,Delivered
+ORD-010,C-1003,Carol Davis,2024-01-24,HDMI Cable 2m,3,12.99,38.97,Delivered
+ORD-011,C-1008,Henry Chen,2024-01-25,Graphics Tablet,1,299.99,299.99,Processing
+ORD-012,C-1009,Isabel Martinez,2024-01-26,Bluetooth Speaker,2,59.99,119.98,Shipped

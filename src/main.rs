@@ -3,6 +3,10 @@ use crate::app::App;
 pub mod app;
 pub mod event;
 pub mod ui;
+pub mod file_browser;
+pub mod data_preview;
+pub mod duckdb_manager;
+pub mod table_viewer;
 
 #[tokio::main]
 async fn main() -> color_eyre::Result<()> {
