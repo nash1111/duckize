@@ -12,6 +12,11 @@ impl DuckDBManager {
         Ok(Self { conn })
     }
 
+    pub fn new_with_file(path: &str) -> Result<Self> {
+        let conn = Connection::open(path)?;
+        Ok(Self { conn })
+    }
+
     pub fn import_csv(&self, 
         file_path: &Path, 
         table_name: &str, 
@@ -72,6 +77,11 @@ impl DuckDBManager {
     }
 
     pub fn execute_query(&self, query: &str) -> Result<Vec<Vec<String>>> {
+        // First check if the query is valid
+        if query.trim().is_empty() {
+            return Ok(Vec::new());
+        }
+        
         // Prepare the statement with better error handling
         let stmt_result = self.conn.prepare(query);
         let mut stmt = match stmt_result {
@@ -83,7 +93,14 @@ impl DuckDBManager {
             }
         };
         
-        let column_count = stmt.column_count();
+        // Safely get column count using a more defensive approach
+        let column_count = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| stmt.column_count())) {
+            Ok(count) => count,
+            Err(_) => {
+                eprintln!("Failed to get column count for query: {}", query);
+                return Ok(Vec::new());
+            }
+        };
         
         // Return empty result set if no columns
         if column_count == 0 {
@@ -170,24 +187,30 @@ impl DuckDBManager {
         
         match self.conn.prepare(&query) {
             Ok(mut stmt) => {
-                let schema = stmt.query_map([], |row| {
+                // Collect results first to avoid closure issues
+                match stmt.query_map([], |row| {
                     let column_name: String = row.get(0)?;
                     let column_type: String = row.get(1)?;
                     Ok((column_name, column_type))
-                })?;
-
-                let mut columns = Vec::new();
-                for col in schema {
-                    if let Ok(column_info) = col {
-                        columns.push(column_info);
+                }) {
+                    Ok(mapped) => {
+                        let result: Result<Vec<_>, _> = mapped.collect();
+                        match result {
+                            Ok(columns) => Ok(columns),
+                            Err(e) => {
+                                eprintln!("Query error getting schema for table '{}': {}", table_name, e);
+                                Ok(Vec::new())
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to query schema for table '{}': {}", table_name, e);
+                        Ok(Vec::new())
                     }
                 }
-                
-                Ok(columns)
             }
             Err(e) => {
-                eprintln!("Failed to get schema for table '{}': {}", table_name, e);
-                // Return empty schema instead of propagating error
+                eprintln!("Failed to prepare schema query for table '{}': {}", table_name, e);
                 Ok(Vec::new())
             }
         }

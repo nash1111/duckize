@@ -18,6 +18,9 @@ impl Widget for &App {
             .split(area);
 
         match self.mode {
+            AppMode::DatabaseSelect => {
+                self.render_database_select(chunks[0], buf);
+            }
             AppMode::FileBrowser => {
                 self.render_file_browser(chunks[0], buf);
             }
@@ -40,6 +43,21 @@ impl Widget for &App {
 }
 
 impl App {
+    fn render_database_select(&self, area: Rect, buf: &mut Buffer) {
+        let block = Block::default()
+            .title("Database Selection")
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded);
+
+        let input_text = format!("Database file: {}_", self.database_path);
+        let input = Paragraph::new(input_text)
+            .block(block)
+            .style(Style::default().fg(Color::Yellow))
+            .centered();
+
+        input.render(area, buf);
+    }
+
     fn render_file_browser(&self, area: Rect, buf: &mut Buffer) {
         let mut file_browser = self.file_browser.clone();
         file_browser.render(area, buf);
@@ -100,6 +118,7 @@ impl App {
             .border_type(BorderType::Plain);
 
         let mode_text = match self.mode {
+            AppMode::DatabaseSelect => "Database Select",
             AppMode::FileBrowser => "File Browser",
             AppMode::DataPreview => "Data Preview",
             AppMode::TableImport => "Table Import",

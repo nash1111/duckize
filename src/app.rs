@@ -12,6 +12,7 @@ use std::path::PathBuf;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppMode {
+    DatabaseSelect,
     FileBrowser,
     DataPreview,
     TableImport,
@@ -41,6 +42,10 @@ pub struct App {
     pub table_name: String,
     /// Status message
     pub status_message: String,
+    /// Database file path
+    pub database_path: String,
+    /// Whether database is initialized
+    pub database_initialized: bool,
 }
 
 impl Default for App {
@@ -48,14 +53,16 @@ impl Default for App {
         Self {
             running: true,
             events: EventHandler::new(),
-            mode: AppMode::FileBrowser,
+            mode: AppMode::DatabaseSelect,
             file_browser: FileBrowser::new(),
             data_preview: DataPreview::new(),
             duckdb: DuckDBManager::new().expect("Failed to initialize DuckDB"),
             table_viewer: TableViewer::new(),
             selected_file: None,
             table_name: String::new(),
-            status_message: "Welcome to Duckize! Navigate files with arrows, Enter to select. Press Tab to switch views.".to_string(),
+            status_message: "Enter database file name (e.g. mydata.db) or press Enter for default (duckize.db)".to_string(),
+            database_path: String::new(),
+            database_initialized: false,
         }
     }
 }
@@ -87,11 +94,32 @@ impl App {
     /// Handles the key events and updates the state of [`App`].
     pub fn handle_key_events(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
         match self.mode {
+            AppMode::DatabaseSelect => self.handle_database_select_keys(key_event)?,
             AppMode::FileBrowser => self.handle_file_browser_keys(key_event)?,
             AppMode::DataPreview => self.handle_data_preview_keys(key_event)?,
             AppMode::TableImport => self.handle_table_import_keys(key_event)?,
             AppMode::QueryMode => self.handle_query_mode_keys(key_event)?,
             AppMode::TableViewer => self.handle_table_viewer_keys(key_event)?,
+        }
+        Ok(())
+    }
+
+    fn handle_database_select_keys(&mut self, key_event: KeyEvent) -> color_eyre::Result<()> {
+        match key_event.code {
+            KeyCode::Esc | KeyCode::Char('q') => self.events.send(AppEvent::Quit),
+            KeyCode::Enter => {
+                if self.database_path.is_empty() {
+                    self.database_path = "duckize.db".to_string();
+                }
+                self.initialize_database()?;
+            }
+            KeyCode::Char(c) => {
+                self.database_path.push(c);
+            }
+            KeyCode::Backspace => {
+                self.database_path.pop();
+            }
+            _ => {}
         }
         Ok(())
     }
@@ -310,6 +338,24 @@ impl App {
                 Err(e) => {
                     self.status_message = format!("Import failed: {}", e);
                 }
+            }
+        }
+        Ok(())
+    }
+
+    fn initialize_database(&mut self) -> color_eyre::Result<()> {
+        match DuckDBManager::new_with_file(&self.database_path) {
+            Ok(db) => {
+                self.duckdb = db;
+                self.database_initialized = true;
+                self.mode = AppMode::FileBrowser;
+                self.status_message = format!("Connected to database: {}. Navigate files with arrows, Enter to select. Press Tab to switch views.", self.database_path);
+                
+                // Refresh tables in case the database already has tables
+                self.table_viewer.refresh_tables(&self.duckdb).ok();
+            }
+            Err(e) => {
+                self.status_message = format!("Failed to open database: {}. Try another name.", e);
             }
         }
         Ok(())
